@@ -1,0 +1,6 @@
+"""."""
+
+
+class InvalidFile(Exception):
+    """."""
+    pass
