@@ -1,4 +1,5 @@
 """."""
+import datetime
 
 
 class FileIO(object):
@@ -17,4 +18,7 @@ class FileIO(object):
 
     def __repr__(self):
         """."""
-        return ''
+        return '<%s key=%s alias=%s expiry=%s>' % (self.__class__.__name__,
+                                                   self.key,
+                                                   self.alias,
+                                                   self.expiry)
