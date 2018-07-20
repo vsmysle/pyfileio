@@ -1,5 +1,6 @@
 """."""
-import datetime
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 
 class FileIO(object):
@@ -11,6 +12,18 @@ class FileIO(object):
         self.alias = alias
         self.link = link
         self.expiry = expiry
+
+        duration, period = expiry.split()[1]
+
+        time_now = datetime.utcnow()
+        if period == 'days':
+            self.expire_at = time_now + relativedelta(days=duration)
+        elif period == 'weeks':
+            self.expire_at = time_now + relativedelta(weeks=duration)
+        elif period == 'months':
+            self.expire_at = time_now + relativedelta(months=duration)
+        elif period == 'years':
+            self.expire_at = time_now + relativedelta(years=duration)
 
     def __getattr__(self, key):
         """."""
