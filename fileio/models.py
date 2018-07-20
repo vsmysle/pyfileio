@@ -31,7 +31,10 @@ class FileIO(object):
 
     def __repr__(self):
         """."""
-        return '<%s key=%s alias=%s expiry=%s>' % (self.__class__.__name__,
-                                                   self.key,
-                                                   self.alias,
-                                                   self.expiry)
+        return '<%s key=%s alias=%s expiry=%s expire_at=%s>' % (
+            self.__class__.__name__,
+            self.key,
+            self.alias,
+            self.expiry,
+            self.expire_at
+        )
