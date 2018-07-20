@@ -6,15 +6,12 @@ from dateutil.relativedelta import relativedelta
 class FileIO(object):
     """."""
 
-    def __init__(self, key, alias, link, expiry):
+    def __init__(self, **kwargs):
         """."""
-        self.key = key
-        self.alias = alias
-        self.link = link
-        self.expiry = expiry
+        self.__dict__.update(kwargs)
+        duration, period = self.expiry.split()
 
-        duration, period = expiry.split()[1]
-
+        duration = int(duration)
         time_now = datetime.utcnow()
         if period == 'days':
             self.expire_at = time_now + relativedelta(days=duration)
@@ -31,9 +28,10 @@ class FileIO(object):
 
     def __repr__(self):
         """."""
-        return '<%s key=%s alias=%s expiry=%s expire_at=%s>' % (
+        return '<%s key=%s, link=%s, alias=%s, expiry=%s, expire_at=%s>' % (
             self.__class__.__name__,
             self.key,
+            self.link,
             self.alias,
             self.expiry,
             self.expire_at

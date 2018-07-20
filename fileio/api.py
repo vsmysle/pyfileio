@@ -38,9 +38,19 @@ class API(object):
         :rtype: .models.FileIO or None if file was not uploaded
         """
         params = {'expiry': expiry if expiry else None}
-        data = self._read_file(kwargs['file']) if kwargs['file'] else None
+
+        data = kwargs['text'] if kwargs.get('text') else None
+
+        filename = kwargs.get('file')
+        file_data = {
+            'file': (
+                filename.split('/')[-1],
+                self._read_file(filename) if filename else None
+            )
+        }
+
         resp = requests.post(self.base_url, params=params, data=data,
-                             files=data)
+                             files=file_data)
         resp_data = resp.json()
         if resp_data['success']:
             resp_data['alias'] = alias if alias else None
