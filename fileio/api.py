@@ -1,8 +1,10 @@
 """."""
 import logging
+from datetime import datetime
 from os import path
 import json
 import pickle
+import re
 import requests
 
 from .models import FileIO
@@ -19,10 +21,6 @@ class API(object):
         self.logger = logging.getLogger(__name__)
         self.file_obj_list = []
 
-    def get_uploads(self):
-        """."""
-        return self.file_obj_list
-
     def upload(self, alias=None, expiry=None, **kwargs):
         """."""
         params = {'expiry': expiry if expiry else None}
@@ -30,8 +28,33 @@ class API(object):
         resp = requests.post(self.base_url, params=params, data=data,
                              files=data)
         resp_data = resp.json()
-        resp_data['alias'] = alias if alias else None
-        return FileIO(**resp_data) if resp_data['success'] is True else None
+        if resp_data['success']:
+            resp_data['alias'] = alias if alias else None
+            file_obj = FileIO(**resp_data)
+            self.file_obj_list.append(file_obj)
+            return file_obj
+        return None
+
+    def download(self, key=None, alias=None):
+        """."""
+        if alias:
+            files = [obj for obj in self.file_obj_list if obj.alias == alias]
+            for item in files:
+                self.__check_file_availability(item.expire_at)
+                self.__download_file(item.url)
+                self.file_obj_list.remove(item)
+        elif key:
+            files = [obj for obj in self.file_obj_list if obj.key == key]
+            for item in files:
+                self.__check_file_availability(item.expire_at)
+                self.__download_file(item.url)
+                self.file_obj_list.remove(item)
+        else:
+            for item in self.file_obj_list:
+                self.__check_file_availability(item.expire_at)
+                self.__download_file(item.url)
+                self.file_obj_list.remove(item)
+        return True
 
     def export(self, filename, out_type='json'):
         """."""
@@ -54,9 +77,13 @@ class API(object):
             else:
                 self.file_obj_list.append(obj for obj in pickle.load(in_file))
 
-    def get(self, key=None, alias=None):
+    def show(self, key=None, alias=None):
         """."""
-        pass
+        if alias:
+            return [obj for obj in self.file_obj_list if obj.alias == alias]
+        elif key:
+            return [obj for obj in self.file_obj_list if obj.key == key]
+        return self.file_obj_list
 
     @staticmethod
     def __read_file(filename):
@@ -68,3 +95,21 @@ class API(object):
         else:
             with open(filename, 'rb') as file_obj:
                 return file_obj.read()
+
+    @staticmethod
+    def __download_file(url):
+        """."""
+        resp = requests.get(url, stream=True)
+        content_disposition = resp.headers['content-disposition']
+        filename = re.findall("filaname=(.+)", content_disposition)
+        with open(filename, 'wb') as out_file:
+            for chunk in resp.iter_content(chunk_size=1024):
+                if chunk:
+                    out_file.write(chunk)
+
+    @staticmethod
+    def __check_file_availability(obj):
+        """."""
+        if obj.expire_at < datetime.utcnow():
+            return True
+        return False
