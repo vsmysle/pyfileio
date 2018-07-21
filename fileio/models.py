@@ -1,13 +1,13 @@
-"""."""
+"""Models module."""
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
 class FileIO(object):
-    """."""
+    """FileIO class."""
 
     def __init__(self, **kwargs):
-        """."""
+        """FileIO initialization method."""
         self.__dict__.update(kwargs)
         duration, period = self.expiry.split()
 
@@ -23,16 +23,19 @@ class FileIO(object):
             self.expire_at = time_now + relativedelta(years=duration)
 
     def __getattr__(self, key):
-        """."""
+        """Get attribute method.
+
+        :return: None if class instanse doens't have provided attribute
+        """
         return None
 
     def __repr__(self):
-        """."""
-        return '<%s key=%s, link=%s, alias=%s, expiry=%s, expire_at=%s>' % (
+        """Object representation in string."""
+        return '<%s key=%s, link=%s, tag=%s, expiry=%s, expire_at=%s>' % (
             self.__class__.__name__,
             self.key,
             self.link,
-            self.alias,
+            self.tag,
             self.expiry,
             self.expire_at
         )

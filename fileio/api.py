@@ -25,11 +25,11 @@ class API(object):
         self.logger = logging.getLogger(__name__)
         self.file_obj_list = []
 
-    def upload(self, alias=None, expiry=None, **kwargs):
+    def upload(self, tag=None, expiry=None, **kwargs):
         """Upload file to File.io.
 
-        :param alias: File alias (tag).
-        :type alias: str
+        :param tag: File tag (tag).
+        :type tag: str
 
         :param expiry: File expire time (time file.io stores our file).
         :type expiry: str
@@ -53,25 +53,25 @@ class API(object):
                              files=file_data)
         resp_data = resp.json()
         if resp_data['success']:
-            resp_data['alias'] = alias if alias else None
+            resp_data['tag'] = tag if tag else None
             file_obj = FileIO(**resp_data)
             self.file_obj_list.append(file_obj)
             return file_obj
         return None
 
-    def download(self, key=None, alias=None):
+    def download(self, key=None, tag=None):
         """Download file from file.io.
 
         :param key: Key of the file that was given during upload.
         :type key: str
 
-        :param alias: Alias of the file that was given during upload.
-        :type alias: str
+        :param tag: Tag of the file that was given during upload.
+        :type tag: str
 
         :return: ???
         :rtype: ???
         """
-        files = self.show_uploads(key, alias)
+        files = self.show_uploads(key, tag)
         for item in files:
             if self._check_file_availability(item.expire_at):
                 self._download_file(item.url)
@@ -113,31 +113,31 @@ class API(object):
             else:
                 self.file_obj_list.append(obj for obj in pickle.load(in_file))
 
-    def show_uploads(self, key=None, alias=None):
+    def show_uploads(self, key=None, tag=None):
         """Returns list of uploaded files.
 
         :param key: Key of the file that was given during
                     the upload to file.io.
         :type key: str
 
-        :param alias: Alias of the file that was given during
+        :param tag: Tag of the file that was given during
                       the upload to file.io.
-        :type alias: str
+        :type tag: str
 
         :return files: List of uploaded files.
         :rtype: list
         """
         files = []
-        if alias and not key:
+        if tag and not key:
             files.append(
-                [obj for obj in self.file_obj_list if obj.alias == alias]
+                [obj for obj in self.file_obj_list if obj.tag == tag]
             )
-        elif key and not alias:
+        elif key and not tag:
             files.append([obj for obj in self.file_obj_list if obj.key == key])
-        elif key and alias:
+        elif key and tag:
             files.append(
                 [obj for obj in self.file_obj_list if obj.key == key
-                 and obj.alias == alias]
+                 and obj.tag == tag]
             )
         else:
             files = self.file_obj_list
