@@ -22,6 +22,8 @@ class FileIO(object):
         elif period == 'years':
             self.expire_at = time_now + relativedelta(years=duration)
 
+        self.expire_at = self.expire_at.isoformat()
+
     def __getattr__(self, key):
         """Get attribute method.
 
@@ -35,7 +37,7 @@ class FileIO(object):
             self.__class__.__name__,
             self.key,
             self.link,
-            self.location,
+            self.path,
             self.tag,
             self.expire_at
         )

@@ -12,15 +12,16 @@ def test_upload(api):
     uploaded_file = api.upload(
         tag='test_upload',
         expiry='1w',
-        filename='tests/test_file.txt'
+        path='tests/test_file.txt'
     )
 
     assert uploaded_file.link
     assert uploaded_file.key
     assert uploaded_file.tag
+    assert uploaded_file.path
 
 
-def test_download_by_tag(api):
+def test_download(api):
     """Testing file upload functionality.
 
     :param api: Instance of fileio.API class.
@@ -30,13 +31,14 @@ def test_download_by_tag(api):
     uploaded_file = api.upload(
         tag='test_upload',
         expiry='1w',
-        filename='tests/test_file.txt'
+        path='tests/test_file.txt'
     )
 
     # check that instance of FileIO has these fields
     assert uploaded_file.link
     assert uploaded_file.key
     assert uploaded_file.tag
+    assert uploaded_file.path
 
     # remove the uploaded file from the os
     remove('tests/test_file.txt')
@@ -49,12 +51,40 @@ def test_download_by_tag(api):
 
 
 def test_export(api):
-    """."""
-    pass
+    """Testing export method functionality.
+
+    :param api: Instance of fileio.API class.
+    :type api: fileio.API
+    """
+    # upload file to file.io servers
+    uploaded_file = api.upload(
+        tag='test_file',
+        expiry='1d',
+        path='tests/test_file.txt'
+    )
+
+    # check that instance of FileIO has these fields
+    assert uploaded_file.link
+    assert uploaded_file.key
+    assert uploaded_file.tag
+    assert uploaded_file.path
+
+    # check that the uploaded file was added to uploaded files list
+    assert api.show_uploads()
+
+    # testing that export works
+    api.export('tests/files_data.json')
+
+    # check that the exported file exists
+    assert path.isfile('tests/files_data.json')
 
 
 def test_load(api):
-    """."""
+    """Testing load method functionality.
+
+    :param api: Instance of fileio.API class.
+    :type api: fileio.API
+    """
     pass
 
 
@@ -66,13 +96,12 @@ def test_show_uploads(api):
     """
     # checking that we have empty list if we haven't uploaded any files yet
     assert isinstance(api.show_uploads(), list)
-    assert not api.show_uploads()
 
     # upload the file
     uploaded_file = api.upload(
         tag='test_file',
         expiry='2d',
-        filename='tests/test_file.txt'
+        path='tests/test_file.txt'
     )
 
     # check that we have our uploaded file in file_obj_list
@@ -83,7 +112,7 @@ def test_show_uploads(api):
     another_uploaded_file = api.upload(
         tag='another_tag',
         expiry='1d',
-        filename='tests/test_file.txt'
+        path='tests/test_file.txt'
     )
 
     # check that sorting by tags works

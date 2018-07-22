@@ -1,13 +1,13 @@
 """API module."""
 import logging
 from datetime import datetime
-from os import path
+import os
 import json
 import pickle
 import requests
 
 from .models import FileIO
-from .exceptions import InvalidFile
+from .exceptions import InvalidFile, NoFileOrTextProvided
 
 
 class API(object):
@@ -22,6 +22,7 @@ class API(object):
         self.debug = debug
         self.base_url = 'https://file.io/'
         self.logger = logging.getLogger(__name__)
+        self.export_path = 'exported.json'
         self.file_obj_list = []
 
     def upload(self, tag=None, expiry=None, **kwargs):
@@ -42,21 +43,28 @@ class API(object):
 
         data = kwargs['text'] if kwargs.get('text') else None
 
-        filename = kwargs.get('filename')
-        if filename:
+        path = kwargs.get('path')
+
+        if path:
             file_data = {
                 'file': (
-                    filename.split('/')[-1],
-                    self._read_file(filename) if filename else None
+                    path.split('/')[-1],
+                    self._read_file(path)
                 )
             }
 
+        if not path and not data:
+            raise NoFileOrTextProvided(
+                "Please, provide file or text for uploading it!"
+            )
+
         resp = requests.post(self.base_url, params=params, data=data,
                              files=file_data)
+
         resp_data = resp.json()
         if resp_data['success']:
             resp_data['tag'] = tag if tag else None
-            resp_data['location'] = path.abspath(filename)
+            resp_data['path'] = os.path.abspath(path)
             file_obj = FileIO(**resp_data)
             self.file_obj_list.append(file_obj)
             return file_obj
@@ -79,24 +87,37 @@ class API(object):
             print(item)
             if self._check_file_availability(item.expire_at):
                 response = self._download_file(item.link)
-                self._save_file(response, item.location)
+                self._save_file(response, item.path)
                 self.file_obj_list.remove(item)
         return True
 
-    def export(self, filename, out_type='json'):
+    def export(self, path=None, out_type='json'):
         """Export information about uploaded files.
 
-        :param filename: Filename of the output file.
-        :type filename: str
+        :param path: Path to the output file.
+        :type path: str
 
         :param out_type: Type of output file (json or pkl).
         :type out_type: str
         """
         if out_type not in ['pkl', 'json']:
             out_type = 'json'
-        with open('%s.%s' % (filename, out_type), 'wb') as out_file:
+
+        # if username is None, set it to default value
+        if not path:
+            export_path = self.export_path
+        else:
+            if path.split('.')[-1] == 'json' or 'pkl':
+                export_path = path
+            else:
+                export_path = '%s.%s' % (path, out_type)
+
+        with open(export_path, 'w') as out_file:
             if out_type == 'json':
-                json.dump(self.file_obj_list, out_file)
+                out_dict = {
+                    'uploaded': [obj.__dict__ for obj in self.file_obj_list]
+                }
+                json.dump(out_dict, out_file, sort_keys=True, indent=4)
             else:
                 pickle.dump(self.file_obj_list, out_file,
                             pickle.HIGHEST_PROTOCOL)
@@ -157,7 +178,7 @@ class API(object):
 
         :raises InvalidFile if the file is do not exist of it is a link
         """
-        if not path.isfile(filename) or path.islink(filename):
+        if not os.path.isfile(filename) or os.path.islink(filename):
             raise InvalidFile(
                 "File do not exist or it is a link!"
             )
@@ -178,16 +199,16 @@ class API(object):
         return requests.get(url, stream=True)
 
     @staticmethod
-    def _save_file(response, location):
+    def _save_file(response, path):
         """Saves file under a given location.
 
         :param response: Response from file.io.
         :type response: bytes
 
-        :param location: Location of the output file.
-        :type location: str
+        :param path: Location of the output file.
+        :type path: str
         """
-        with open(location, 'wb') as out_file:
+        with open(path, 'wb') as out_file:
             for chunk in response.iter_content(chunk_size=1024):
                 if chunk:
                     out_file.write(chunk)
@@ -197,11 +218,11 @@ class API(object):
         """Checks whether the file did not expire.
 
         :param expire_time: FileIO obj expire_at attribute.
-        :type expire_time: datetime.datetime
+        :type expire_time: str
 
         :return: True if file did not expire, False otherwise
         :rtype: bool
         """
-        if expire_time > datetime.utcnow():
+        if expire_time > datetime.utcnow().isoformat():
             return True
         return False

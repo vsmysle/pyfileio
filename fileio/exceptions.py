@@ -8,3 +8,11 @@ class InvalidFile(Exception):
     (file do not exist  or it is a link to another file).
     """
     pass
+
+
+class NoFileOrTextProvided(Exception):
+    """NoFileOrTextProvided.
+
+    Raises when user didn't provide any text of file to upload.
+    """
+    pass
