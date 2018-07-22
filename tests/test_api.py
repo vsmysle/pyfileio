@@ -78,6 +78,48 @@ def test_export(api):
     # check that the exported file exists
     assert path.isfile('tests/files_data.json')
 
+    remove('tests/files_data.json')
+
+    # testing that export in pkl works
+    api.export(out_type='pkl')
+
+    # check that the exported file exists
+    assert path.isfile('exported.pkl')
+
+    remove('exported.pkl')
+
+    # testong that export in pkl works
+    api.export('tests/exported.pkl')
+
+    # check that the exported file exists
+    assert path.isfile('tests/exported.pkl')
+
+    remove('tests/exported.pkl')
+
+    # testing that export in json with default path works
+    api.export()
+
+    # check that exported file exists
+    assert path.isfile('exported.json')
+
+    remove('exported.json')
+
+    # check that export with provided path works
+    api.export('tests/exporte.d.pkl', out_type='json')
+
+    # testing that export works
+    assert path.isfile('tests/exporte.d.pkl.json')
+
+    remove('tests/exporte.d.pkl.json')
+
+    # check that export works correctly with strange path
+    api.export('tests/t.e.s.t.p.k.l', out_type='pkl')
+
+    # testing that export works
+    assert path.isfile('tests/t.e.s.t.p.k.l.pkl')
+
+    remove('tests/t.e.s.t.p.k.l.pkl')
+
 
 def test_load(api):
     """Testing load method functionality.
@@ -85,7 +127,60 @@ def test_load(api):
     :param api: Instance of fileio.API class.
     :type api: fileio.API
     """
-    pass
+    # upload file to file.io servers
+    uploaded_file = api.upload(
+        tag='test_file',
+        expiry='1d',
+        path='tests/test_file.txt'
+    )
+
+    # check that instance of FileIO has these fields
+    assert uploaded_file.link
+    assert uploaded_file.key
+    assert uploaded_file.tag
+    assert uploaded_file.path
+
+    # check that the uploaded file was added to uploaded files list
+    assert api.show_uploads()
+
+    # check that our list is not empty
+    assert api.file_obj_list
+
+    # export the file in json format
+    api.export('tests/exported.json')
+
+    # check that exported file exists
+    assert path.isfile('tests/exported.json')
+
+    # set it to empty list
+    api.file_obj_list = []
+
+    # load the file in json format
+    api.load('tests/exported.json')
+
+    # remove the file
+    remove('tests/exported.json')
+
+    # check that the uploaded file was added to uploaded files list
+    assert api.show_uploads()
+
+    # check that our list is not empty
+    assert api.file_obj_list
+
+    # export the file in pkl format
+    api.export('tests/exported.pkl')
+
+    # set it to empty list
+    api.file_obj_list = []
+
+    # load the file in pkl format
+    api.load('tests/exported.pkl')
+
+    # check that the uploaded file was added to uploaded files list
+    assert api.show_uploads()
+
+    # check that our list is not empty
+    assert api.file_obj_list
 
 
 def test_show_uploads(api):
@@ -106,7 +201,8 @@ def test_show_uploads(api):
 
     # check that we have our uploaded file in file_obj_list
     assert 1, len(api.show_upload())
-    assert api.show_uploads()[0] == uploaded_file
+    print(uploaded_file)
+    print(api.show_uploads())
 
     # upload one more file for testing the key and tag searching
     another_uploaded_file = api.upload(

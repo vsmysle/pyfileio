@@ -4,7 +4,7 @@ import pytest
 from fileio import API
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def api():
     """Retuns API object."""
     return API(debug=True)

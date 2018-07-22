@@ -22,7 +22,8 @@ class API(object):
         self.debug = debug
         self.base_url = 'https://file.io/'
         self.logger = logging.getLogger(__name__)
-        self.export_path = 'exported.json'
+        self.json_export_path = 'exported.json'
+        self.pkl_export_path = 'exported.pkl'
         self.file_obj_list = []
 
     def upload(self, tag=None, expiry=None, **kwargs):
@@ -91,7 +92,7 @@ class API(object):
                 self.file_obj_list.remove(item)
         return True
 
-    def export(self, path=None, out_type='json'):
+    def export(self, path=None, out_type=None):
         """Export information about uploaded files.
 
         :param path: Path to the output file.
@@ -100,19 +101,28 @@ class API(object):
         :param out_type: Type of output file (json or pkl).
         :type out_type: str
         """
-        if out_type not in ['pkl', 'json']:
-            out_type = 'json'
+        valid_types = ['pkl', 'json']
 
-        # if username is None, set it to default value
-        if not path:
-            export_path = self.export_path
-        else:
-            if path.split('.')[-1] == 'json' or 'pkl':
+        if not path and out_type == 'json':
+            export_path = self.json_export_path
+        elif not path and out_type == 'pkl':
+            export_path = self.pkl_export_path
+        elif not path and out_type is None:
+            export_path = self.json_export_path
+        elif path and out_type is None or out_type in valid_types:
+            if path.split('.')[-1] in valid_types and out_type is None:
                 export_path = path
             else:
-                export_path = '%s.%s' % (path, out_type)
+                export_path = '%s.%s' % (
+                    path, out_type if out_type in valid_types else 'json'
+                )
+        else:
+            export_path = '%s.%s' % (path, 'json')
 
-        with open(export_path, 'w') as out_file:
+        out_type = export_path.split('.')[-1]
+
+        prefix = 'b' if out_type == 'pkl' else ''
+        with open(export_path, 'w%s' % prefix) as out_file:
             if out_type == 'json':
                 out_dict = {
                     'uploaded': [obj.__dict__ for obj in self.file_obj_list]
@@ -122,20 +132,35 @@ class API(object):
                 pickle.dump(self.file_obj_list, out_file,
                             pickle.HIGHEST_PROTOCOL)
 
-    def load(self, filename, in_type='json'):
+    def load(self, path, in_type=None):
         """Load infomation about uploaded files.
 
-        :param filename: Filename of the input file.
-        :type filename: str
+        :param path: Filename of the input file.
+        :type path: str
 
         :param in_type: Type of the input file (json or pkl).
         :type in_type: str
         """
+
+        # setting to default 'json' if in_type is different from pkl or json
         if in_type not in ['pkl', 'json']:
-            out_type = 'json'
-        with open('%s.%s' % (filename, in_type), 'rb') as in_file:
-            if out_type == 'json':
-                self.file_obj_list += [obj for obj in json.load(in_file)]
+            in_type = 'json'
+
+        # if file extension is pkl
+        if path.split('.')[-1] == 'pkl':
+            in_type = 'pkl'
+
+        # prefix for opening file in binary mode if in_type = 'pkl'
+        prefix = 'b' if in_type == 'pkl' else ''
+
+        load_path = '%s.%s' % (''.join(path.split('.')[:-1]), in_type)
+
+        # opening the file for reading
+        with open(load_path, 'r%s' % prefix) as in_file:
+            if in_type == 'json':
+                self.file_obj_list += [
+                    FileIO(**obj) for obj in json.load(in_file)['uploaded']
+                ]
             else:
                 self.file_obj_list += [obj for obj in pickle.load(in_file)]
 
