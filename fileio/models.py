@@ -31,11 +31,11 @@ class FileIO(object):
 
     def __repr__(self):
         """Object representation in string."""
-        return '<%s key=%s, link=%s, tag=%s, expiry=%s, expire_at=%s>' % (
+        return '<%s key=%s, link=%s, location=%s, tag=%s, expire_at=%s>' % (
             self.__class__.__name__,
             self.key,
             self.link,
+            self.location,
             self.tag,
-            self.expiry,
             self.expire_at
         )

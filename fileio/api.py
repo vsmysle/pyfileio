@@ -4,7 +4,6 @@ from datetime import datetime
 from os import path
 import json
 import pickle
-import re
 import requests
 
 from .models import FileIO
@@ -39,21 +38,25 @@ class API(object):
         """
         params = {'expiry': expiry if expiry else None}
 
+        file_data = {}
+
         data = kwargs['text'] if kwargs.get('text') else None
 
-        filename = kwargs.get('file')
-        file_data = {
-            'file': (
-                filename.split('/')[-1],
-                self._read_file(filename) if filename else None
-            )
-        }
+        filename = kwargs.get('filename')
+        if filename:
+            file_data = {
+                'file': (
+                    filename.split('/')[-1],
+                    self._read_file(filename) if filename else None
+                )
+            }
 
         resp = requests.post(self.base_url, params=params, data=data,
                              files=file_data)
         resp_data = resp.json()
         if resp_data['success']:
             resp_data['tag'] = tag if tag else None
+            resp_data['location'] = path.abspath(filename)
             file_obj = FileIO(**resp_data)
             self.file_obj_list.append(file_obj)
             return file_obj
@@ -73,8 +76,10 @@ class API(object):
         """
         files = self.show_uploads(key, tag)
         for item in files:
+            print(item)
             if self._check_file_availability(item.expire_at):
-                self._download_file(item.url)
+                response = self._download_file(item.link)
+                self._save_file(response, item.location)
                 self.file_obj_list.remove(item)
         return True
 
@@ -109,9 +114,9 @@ class API(object):
             out_type = 'json'
         with open('%s.%s' % (filename, in_type), 'rb') as in_file:
             if out_type == 'json':
-                self.file_obj_list.append(obj for obj in json.load(in_file))
+                self.file_obj_list += [obj for obj in json.load(in_file)]
             else:
-                self.file_obj_list.append(obj for obj in pickle.load(in_file))
+                self.file_obj_list += [obj for obj in pickle.load(in_file)]
 
     def show_uploads(self, key=None, tag=None):
         """Returns list of uploaded files.
@@ -129,16 +134,12 @@ class API(object):
         """
         files = []
         if tag and not key:
-            files.append(
-                [obj for obj in self.file_obj_list if obj.tag == tag]
-            )
+            files += [obj for obj in self.file_obj_list if obj.tag == tag]
         elif key and not tag:
-            files.append([obj for obj in self.file_obj_list if obj.key == key])
+            files += [obj for obj in self.file_obj_list if obj.key == key]
         elif key and tag:
-            files.append(
-                [obj for obj in self.file_obj_list if obj.key == key
-                 and obj.tag == tag]
-            )
+            files += [obj for obj in self.file_obj_list if obj.key == key
+                      and obj.tag == tag]
         else:
             files = self.file_obj_list
         files = list(set(files))
@@ -170,25 +171,37 @@ class API(object):
 
         :param url: Link to the file.
         :type url: str
+
+        :return resp: Response from file.io.
+        :rtype: requests.Response
         """
-        resp = requests.get(url, stream=True)
-        content_disposition = resp.headers['content-disposition']
-        filename = re.findall("filaname=(.+)", content_disposition)
-        with open(filename, 'wb') as out_file:
-            for chunk in resp.iter_content(chunk_size=1024):
+        return requests.get(url, stream=True)
+
+    @staticmethod
+    def _save_file(response, location):
+        """Saves file under a given location.
+
+        :param response: Response from file.io.
+        :type response: bytes
+
+        :param location: Location of the output file.
+        :type location: str
+        """
+        with open(location, 'wb') as out_file:
+            for chunk in response.iter_content(chunk_size=1024):
                 if chunk:
                     out_file.write(chunk)
 
     @staticmethod
-    def _check_file_availability(obj):
+    def _check_file_availability(expire_time):
         """Checks whether the file did not expire.
 
-        :param obj: FileIO obj.
-        :type obj: .models.FileIO
+        :param expire_time: FileIO obj expire_at attribute.
+        :type expire_time: datetime.datetime
 
         :return: True if file did not expire, False otherwise
         :rtype: bool
         """
-        if obj.expire_at < datetime.utcnow():
+        if expire_time > datetime.utcnow():
             return True
         return False
