@@ -10,5 +10,5 @@ python:
 install:
   - pip install -r requirements.txt
 script:
-  - python -m pytest
+  - python -m pytest -cov=fileio tests/
 sudo: false
