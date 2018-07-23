@@ -16,3 +16,11 @@ class NoFileOrTextProvided(Exception):
     Raises when user didn't provide any text of file to upload.
     """
     pass
+
+
+class APIConnectionError(Exception):
+    """APIConnectionError.
+
+    Raises when response['success'] == False.
+    """
+    pass

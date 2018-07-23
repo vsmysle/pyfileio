@@ -3,7 +3,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
-class FileIO(object):
+class FileIO(object):  # pragma: no cover
     """FileIO class."""
 
     def __init__(self, **kwargs):

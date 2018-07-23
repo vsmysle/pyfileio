@@ -7,7 +7,7 @@ import pickle
 import requests
 
 from .models import FileIO
-from .exceptions import InvalidFile, NoFileOrTextProvided
+from .exceptions import InvalidFile, NoFileOrTextProvided, APIConnectionError
 
 
 class API(object):
@@ -69,6 +69,11 @@ class API(object):
             file_obj = FileIO(**resp_data)
             self.file_obj_list.append(file_obj)
             return file_obj
+        else:
+            print(resp_data)
+            if resp_data['error'] == 404:
+                raise APIConnectionError("Message was not found on file.io!")
+
         return None
 
     def download(self, key=None, tag=None):
@@ -222,6 +227,30 @@ class API(object):
         :rtype: requests.Response
         """
         return requests.get(url, stream=True)
+
+    @staticmethod
+    def _encrypt_file(file_content, public_key):
+        """Encrypts file content.
+
+        :param file_content: Content of the file.
+        :type file_content: bytes
+
+        :param public_key: Receiver public key.
+        :type public_key: ???
+        """
+        pass
+
+    @staticmethod
+    def _decrypt_file(ciphertext, private_key):
+        """Decrypts file content.
+
+        :param ciphertext: Ciphertext.
+        :type ciphertext: bytes
+
+        :param private_key: Receipient private key.
+        :type private_key: ???
+        """
+        pass
 
     @staticmethod
     def _save_file(response, path):

@@ -176,6 +176,9 @@ def test_load(api):
     # load the file in pkl format
     api.load('tests/exported.pkl')
 
+    # remove exported.pkl file
+    remove('tests/exported.pkl')
+
     # check that the uploaded file was added to uploaded files list
     assert api.show_uploads()
 
