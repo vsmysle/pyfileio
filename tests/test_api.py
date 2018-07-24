@@ -1,8 +1,8 @@
 """File.io API tests."""
 from os import path, remove
-# import pytest
+import pytest
 
-# from fileio.exceptions import APIConnectionError
+from fileio.exceptions import APIConnectionError
 
 
 def test_upload(api):
@@ -12,7 +12,6 @@ def test_upload(api):
     :type api: fileio.API
     """
     # upload the file to file.io servers
-    # with pytest.raises(APIConnectionError):
     uploaded_file = api.upload(
         tag='test_upload',
         expiry='1w',
@@ -23,6 +22,14 @@ def test_upload(api):
     assert uploaded_file.key
     assert uploaded_file.tag
     assert uploaded_file.path
+
+    with pytest.raises(APIConnectionError):
+        while True:
+            api.upload(
+                tag='test_upload',
+                expiry='1w',
+                path='tests/test_file.txt'
+            )
 
 
 def test_download(api):
