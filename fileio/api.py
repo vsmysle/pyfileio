@@ -62,19 +62,21 @@ class API(object):
         resp = requests.post(self.base_url, params=params, data=data,
                              files=file_data)
 
-        resp_data = resp.json()
-        if resp_data['success']:
-            resp_data['tag'] = tag if tag else None
-            resp_data['path'] = os.path.abspath(path)
-            file_obj = FileIO(**resp_data)
-            self.file_obj_list.append(file_obj)
-            return file_obj
-        else:
-            print(resp_data)
-            if resp_data['error'] == 404:
-                raise APIConnectionError("Message was not found on file.io!")
+        # convert response to python dict
+        data = resp.json()
 
-        return None
+        # get response status code
+        status_code = data['error'] if data['success'] is False else 200
+
+        # parsing response status code
+        self.__parse_status_code(status_code)
+
+        # assign tag and abs path values to FileIO attrs
+        data['tag'] = tag if tag else None
+        data['path'] = os.path.abspath(path)
+        file_obj = FileIO(**data)
+        self.file_obj_list.append(file_obj)
+        return file_obj
 
     def download(self, key=None, tag=None):
         """Download file from file.io.
@@ -280,3 +282,23 @@ class API(object):
         if expire_time > datetime.utcnow().isoformat():
             return True
         return False
+
+    @staticmethod
+    def __parse_status_code(status_code):
+        """Parses status code from remote server response.
+
+        :param status_code: Response status code.
+        :type status_code: int
+
+        :raises APIConnectionError if status code != 200
+        """
+        if status_code == 200:
+            return
+        elif status_code == 404:
+            raise APIConnectionError("Message was not found on file.io!")
+        elif status_code == 429:
+            raise APIConnectionError("Too many requests to file.io!")
+        else:
+            raise APIConnectionError(
+                "Unknown error with %d status code!" % status_code
+            )
